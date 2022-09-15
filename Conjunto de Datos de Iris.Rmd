@@ -1,0 +1,183 @@
+---
+title: "Resolución de preguntas para conjuntos de datos Iris"
+author: "Gutiérrez González Diego 5AM1"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+
+Responder a las siguientes preguntas con respecto al conjunto de datos de Iris.
+
+En el análisis de datos llamamos a cada una de las 150 flores de iris como **objetos**, cada una de las 3 especies como **clases** y cada una de las 4 dimensiones como **características**.
+
+```{r}
+#Importamos el dataset
+#install.packages("readr")
+library(readr)
+
+root <- "./iris.data"
+iris <- read_csv(root, col_names = c("Sepal.Length","Sepal.Width",
+                                     "Petal.Length","Petal.Width","Species"),
+                 col_types = list("Species" = col_factor() ) )
+#convertir la clase a escala nominal
+
+str(iris)
+summary(iris)
+
+```
+
+**¿Cuál de los datos podría contener errores o asignaciones de clases falsas? **
+
+Para poder encontrar que objetos pueden tener errores de asignación o clases falses recurrí a una gráfica de dispersión. 
+
+La gráfica de dispersión que compara x = longitud y y = ancho de las medidas de los pétalos en las plantas de iris, mostró que se crean tres grupos y depende de la especie de las plantas. De las tres especies de plantas, la setosa resulto estar más alejada de las dimensiones de las especies versicolor y virginica. En cuanto a las especies virginica y versicolor, estas especies tienen objetos muy similares en cuanto a sus dimensiones, por lo que, todos los objetos de distintas especies que estén cerca a otro objeto de una especie diferente pueden tener errores de asignación. 
+
+Las especies versicolor y virginica están muy dispersas, por lo que podrían tener asignaciones falsas. Debido a que los pétalos están mejor agrupadas, se puede utilizar la medida de los pétalos y sépalos para identificar a que especie pertenece un Iris.
+
+```{r}
+
+#Gráfica de dispersión para el pétalo de las especies de plantas iris
+plot(x = iris$Petal.Length, y = iris$Petal.Width, col = iris$Species, 
+     main = "Pétalo", xlab = "Largo", ylab = "Ancho")
+legend(x = "topleft", legend = c("Setosa", "Versicolor", "Virginica"), 
+       fill = c("black", "red", "green"), title = "Especie")
+```
+
+
+Se aplicó la misma técnica para comparar las medidas de los sépalos de las especies Iris. En este caso, los datos están más dispersos. Sin embargo, la división de los grupos según su especie es notoria, al menos para las setosas, mientras que para las especies versicolor y virginica están mas separadas.
+
+Algunas especies versicolor están muy cerca de
+
+```{r}
+
+#Gráfica de dispersión para el sépalo de las especies de plantas iris
+plot(x = iris$Sepal.Length, y = iris$Sepal.Width, col = iris$Species, 
+     main = "Sepalo", xlab = "Largo", ylab = "Ancho")
+legend(x = "topleft", legend = c("Setosa", "Versicolor", "Virginica"), 
+       fill = c("black", "red", "green"), title = "Especie")
+
+#resumen de todos los datos
+summary(iris)
+
+#resumen por cada especie de iris
+cat("\nResumen de setosa\n")
+setosa <- iris[iris$Species=="Iris-setosa",]
+summary(setosa)
+
+cat("Resumen de versicolor\n")
+versicolor <- iris[iris$Species=="Iris-versicolor",]
+summary(versicolor)
+
+cat("Resumen de virginica\n")
+virginica  <- iris[iris$Species=="Iris-virginica",]
+summary(virginica)
+```
+
+
+**¿Cuál es el error causado por redondear los datos a un decimal?**
+
+Redondear los datos a un decimal no permitiría identificar con claridad a que especie pertenece la planta y por ende se generarían falsas asignaciones de clase.
+
+**¿Cuál es la correlación entre la longitud y el ancho de los pétalos?**
+
+El Coeficiente de correlación permite identificar que tan dependiente es una variable de otra. 
+$$ r = \frac{S_{xy}}{\sqrt{S_{xx} \cdot S_{yy}}} $$
+$$ -1 \leq r \leq 1 $$
+Si r es muy cercano a 1, entonces existe una correlación directa fuerte, en cambio cuando r es -1 existe una correlación inversa fuerte. Cuando r es cercano a 0, la correlación es nula.
+
+
+$$S_{xy}=\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})$$
+$$S_{xx}=\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}$$
+$$S_{yy}=\sum_{i=1}^{n}(y_{i}-\bar{y})^{2}$$
+
+$$ r=\frac{\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{\sqrt{\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}\sum_{i=1}^{n}(y_{i}-\bar{y})^{2}}} $$
+```{r}
+cor(iris$Petal.Length, iris$Petal.Width, method = c("pearson"))
+```
+
+La correlación entre la longitud y el ancho del pétalo es de 0.96, por lo que podemos concluir que si aumenta la longitud también lo hará. A partir de esta métrica, podemos generar un modelo de regresión lineal para poder aproximar valores.
+
+**¿Qué par de dimensiones están más correlacionadas?**
+
+Para saber esto, es necesario hacer una matriz de correlaciones para poder comparar todas las variables dentro de nuestro conjunto de datos.
+```{r}
+pairs(iris[,-5])
+cor(iris[,-5])
+```
+A partir de esta matriz, podemos hacer las siguientes observaciones:
+
++ La longitud de los pétalos tiene una correlación fuerte con respecto a la longitud de los sépalos
++ El  ancho de los pétalos tiene una relación fuerte con la longitud del sépalo
++ Existe una correlación fuerte con la longitud del pétalo y el ancho del pétalo.
+
+Finalmente, las dimensiones más correlacionadas son la longitud y el ancho del pétalo.
+
+**Ninguna de las flores en el dataset tiene un ancho de sépalo de 1.8 cm. ¿Qué longitud de sépalo esperaríamos para una flor que tuviera 1.8 cm como ancho de sépalo?**
+
+A partir de las correlaciones que se obtuvieron anteriormente, podemos establecer que tan conveniente es hacer una regresión lineal. Sin embargo, el coeficiente de correlación para la longitud y ancho del sépalo es casi nula, por lo que no se puede establecer un modelo confiable.
+
+En todo caso, se puede crear un modelo de regresión linean para el largo y ancho de los pétalos. Esto se debe a que su correlación es fuerte.
+
+```{r}
+
+modelo <- lm(Petal.Length ~ Petal.Width, data = iris[,-5])
+summary(modelo)
+```
+
+El modelo que representa a nuestra regresión lineal es 
+
+$$ y = 1.08356 + 2.22994(x) $$
+Nuestro modelo es 92.71% acertado, por lo que podemos confiar en sus resultados
+
+```{r}
+plot(iris$Petal.Width, iris$Petal.Length, xlab = "Ancho", ylab = "Largo", main = "Regresion ancho ~ largo del pétalo", col = iris$Species)
+legend(x = "topleft", legend = c("Setosa", "Versicolor", "Virginica"), 
+       fill = c("black", "red", "green"), title = "Especie")
+abline(modelo)
+```
+A partir de este modelo, podemos saber cual es la longitud de nuestro pétalo, si su ancho es de 1.8cm
+
+```{r}
+y <- 1.08356 + 2.22994*(1.8)
+y
+```
+Empleando este modelo, un pétalo con ancho de 1.8cm, tendría una longitud de 5.1cm
+
+**¿A qué especie pertenecería un Iris con un ancho de sépalo de 1.8 cm?**
+
+De acuerdo con el resumen de los datos, un Iris con sépalo de 1.8cm podría pertenecer a la especie versicolor o virginica. Esta inferencia la obtuve a partir de los datos mínimos y máximos de cada especie y al valor que este más cercano es a la especie que pertenece.
+
+Para tener menos incertidumbre, tendríamos que tener la longitud del sépalo y hacer un modelo de agrupación.
+```{r}
+summary(setosa)
+summary(versicolor)
+summary(virginica)
+```
+
+**Las 3 especies contienen subespecies que pueden identificarse a partir de los datos?**
+
+A partir de un análisis de cluster, podemos clasificar a nuestros datos. En este caso, use un algoritmo no supervisado conocido como k-means para clasificar nuestros datos en 3 y 4 cluster's para notar las diferencias.
+
+A partir de las gráficas podemos encontrar subespecies de Iris.
+
+```{r}
+library(cluster)
+
+sepalos <- iris[,1:2]
+petalos <- iris[,3:4]
+
+modelo_1 <- kmeans(sepalos, 3)
+clusplot(sepalos,modelo_1$cluster)
+
+modelo_1 <- kmeans(sepalos, 4)
+clusplot(sepalos,modelo_1$cluster)
+
+modelo_2 <- kmeans(petalos, 3)
+clusplot(petalos,modelo_2$cluster)
+
+modelo_2 <- kmeans(petalos, 4)
+clusplot(petalos,modelo_2$cluster)
+```
+

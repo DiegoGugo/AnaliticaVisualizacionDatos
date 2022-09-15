@@ -1,0 +1,280 @@
+---
+title: "Proyecto 1"
+author: "Diego Gutiérrez Gozález 5AM1"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+A partir del conjunto de datos Iris, realizar un programa en R que permita calcular: 
+
++ Área del sépalo y pétalo
++ Calcular la media aritmética, media generalizada (considerando los valores vistos en clase), mediana, moda, varianza, desviación estándar
++ Encontrar valores máximos y mínimos de las áreas de los sépalos y pétalos, de cada una de las 3 especies de flores Iris.
+
+```{r}
+#Importar dataset
+#package.install("readr")
+library(readr)
+
+path = file.choose(new = FALSE)
+iris <- read_csv(path, col_names = c("Sepal.Length","Sepal.Width",
+                                     "Petal.Length","Petal.Width","Species"),
+                 col_types = list("Species" = col_factor() ) )
+#convertir la clase a escala nominal
+summary(iris)
+
+```
+Para poder calcular el el área del sépalo y del pétalo, es necesario multiplicar la longitud por su ancho.
+
+Antes de poder hacer estas operaciones, separare el conjunto de datos en dos, sépalo y pétalo, de tal forma que sea mucho más fácil manipularlos.
+
+```{r}
+
+#separamos el conjunto de datos en sépalo y pétalo
+
+sepalo = iris[,c(1:2,5)]
+petalo = iris[,c(3:4,5)]
+
+#multiplicamos longitud por ancho del sépalo para obtener su área
+length_sepalo = sepalo[["Sepal.Length"]]
+width_sepalo = sepalo[["Sepal.Width"]]
+
+area_sepalo = c(NULL)
+for (i in length(length_sepalo)) {
+  area_sepalo = length_sepalo*width_sepalo
+}
+
+sepalo = data.frame(Sepal.Length = sepalo$Sepal.Length,
+                    Sepal.Width = sepalo$Sepal.Width,
+                    Area = area_sepalo,
+                    Species = sepalo$Species)
+
+#Calcular área del pétalo
+length_petalo = petalo[["Petal.Length"]]
+width_petalo = petalo[["Petal.Width"]]
+
+area_petalo = c(NULL)
+for (i in length(length_petalo)) {
+  area_petalo = length_petalo * width_petalo
+}
+
+petalo = data.frame(Petalo.Length = petalo$Petal.Length,
+                    Petalo.Width = petalo$Petal.Width,
+                    Area = area_petalo,
+                    Species = petalo$Species)
+
+print(head(sepalo))
+print(head(petalo))
+```
+Calcularemos la media aritmética de acuerdo con la especie para notar si hay alguna diferencia importante.
+
+#### Formulas
+
+**Media generalizada**
+
+$$ \bar{x} = \sqrt[\alpha]{\frac{1}{n}\sum_{k=1}^{n}x^{\alpha}_{k}}$$
+Si $\alpha$ toma los siguientes valores, se obtiene:
+
++ $\alpha$ $\rightarrow +\inf$, máxima
++ $\alpha =$ 2, media cuadrática,
++ $\alpha =$ 1, media aritmética
++ $\alpha \rightarrow$ 0, media geométrica
++ $\alpha =$ -1, media armónica
++ $\alpha$ $\rightarrow -\inf$, mínimo
+
+**Media geométrica**
+
+$$ \bar{x} = \sqrt[n]{\prod_{k=1}^{n}x_{k}}$$
+**Varianza muestral**
+
+$$ \sigma^{2} = \frac{\sum_{i=1}^{n} (x_{i}-\bar{x})^{2}}{n-1} $$
+
+**Desviación estándar**
+
+$$ \sigma =\sqrt[2]{ \frac{\sum_{i=1}^{n} (x_{i}-\bar{x})^{2}}{n-1} }$$
+```{r}
+#install.packages("tidyverse")
+library("tidyverse")
+
+mean_gen = function(vector, alpha){
+  if(alpha != 0){
+    suma = 0
+    for (i in vector) {
+      suma = suma + (i)**alpha
+    }
+    
+    mean = (suma/length(vector))**(alpha)
+    return(mean)
+  }else{
+    productoria = 1
+    for (i in vector) {
+      productoria = productoria * i
+    }
+  
+    mean = (productoria)**(1/length(vector))
+    return(mean)
+  }
+}
+
+moda=function(vector) {
+  q=table(vector)
+  q=bubblesort(q)
+  
+  #show the 3 most repeated
+  n = length(q)
+  r = q[(n-2):n]
+  print(r)
+}
+
+#21.17
+
+medidas_dispersion = function(vector){
+  mean = mean_gen(vector, 1)
+  sum = 0
+  for (i in vector) {
+    sum = sum + (i - mean)**2
+  }
+  
+  var = sum/(length(vector)-1)
+  
+  des_est = var**(1/2)
+  
+  cat("\n\tVarinza ")
+  cat(var)
+  cat("\n\tDesviación estándar ")
+  cat(des_est)
+}
+
+bubblesort <- function(v) {
+  itemCount <- length(v)
+  repeat {
+    hasChanged <- FALSE
+    itemCount <- itemCount - 1
+    for(i in 1:itemCount) {
+      if ( v[i] > v[i+1] ) {
+        t <- v[i]
+        v[i] <- v[i+1]
+        v[i+1] <- t
+        hasChanged <- TRUE
+      }
+    }
+    if ( !hasChanged ) break;
+  }
+  return(v)
+}
+
+medidas_posicion = function(vector){
+  #ordenar de menor a mayor
+  ordered = bubblesort(vector)
+  
+  n = length(vector)
+  
+  #rango
+  min = ordered[1]
+  max = ordered[n]
+  
+  center = 0
+  mediana = 0
+  #verificar si es par o impar
+  if(n%%2 == 0){ #es par
+    center = n/2
+    mediana = (ordered[center] + ordered[center+1])/2
+  }
+  
+  cat("\n\tMínimo ",min,"\n")
+  cat("\tMediana ",mediana,"\n")
+  cat("\tMáximo ",max,"\n")
+  
+}
+
+operaciones = function(subset) {
+  
+  cat("----------Media artimética----------\n")
+  cat("Longitud ")
+  cat(mean_gen(subset[,1], 1)) #longitud
+  cat("\nAncho ")
+  cat(mean_gen(subset[,2], 1)) #ancho
+  cat("\nÁrea ")
+  cat(mean_gen(subset[,3], 1)) #area
+  
+  cat("\n\n----------Media geométrica----------\n")
+  cat("Longitud ")
+  cat(mean_gen(subset[,1], 0))
+  cat("\nAncho ")
+  cat(mean_gen(subset[,2], 0))
+  cat("\nÁrea ")
+  cat(mean_gen(subset[,3], 0))
+  
+  cat("\n\n----------Media armónica----------\n")
+  cat("Longitud ")
+  cat(mean_gen(subset[,1], -1))
+  cat("\nAncho ")
+  cat(mean_gen(subset[,2], -1))
+  cat("\nÁrea ")
+  cat(mean_gen(subset[,3], -1))
+  
+  cat("\n\n-----------Media cuadrática----------\n")
+  cat("Longitud ")
+  cat(mean_gen(subset[,1], 2))
+  cat("\nAncho ")
+  cat(mean_gen(subset[,2], 2))
+  cat("\nÁrea ")
+  cat(mean_gen(subset[,3], 2))
+  
+  cat("\n\n-----------Moda----------\n")
+  cat("Longitud \n")
+  moda(subset[,1])
+  cat("\nAncho \n")
+  moda(subset[,2])
+  cat("\nÁrea \n")
+  moda(subset[,3])
+  
+  cat("\n\n----------Varianza y Desviación----------\n")
+  cat("Longitud ")
+  medidas_dispersion(subset[,1])
+  cat("\nAncho ")
+  medidas_dispersion(subset[,2])
+  cat("\nÁrea ")
+  medidas_dispersion(subset[,3])
+  
+  cat("\n\n----------Medidas de posición----------\n")
+  cat("Longitud ")
+  medidas_posicion(subset[,1])
+  cat("\nAncho ")
+  medidas_posicion(subset[,2])
+  cat("\nÁrea ")
+  medidas_posicion(subset[,3])
+}
+```
+
+#### Promedio de los **sépalos** de la especie **setosa**
+```{r}
+operaciones(filter(sepalo,Species=="Iris-setosa"))
+```
+
+#### Promedio de los **pétalos** de la especie **setosa**
+```{r}
+operaciones(filter(petalo,Species=="Iris-setosa"))
+```
+
+
+#### Promedio de los **sépalos** de la especie **versicolor**
+```{r}
+operaciones(filter(sepalo,Species=="Iris-versicolor"))
+```
+
+#### Promedio de los **pétalos** de la especie **versicolor**
+```{r}
+operaciones(filter(petalo,Species=="Iris-versicolor"))
+```
+                                
+#### Promedio de los **sépalos** de la especie **virginica**
+```{r}
+operaciones(filter(sepalo,Species=="Iris-virginica"))
+```
+
+#### Promedio de los **pétalos** de la especie **virginica**
+```{r}
+operaciones(filter(petalo,Species=="Iris-virginica"))
+```            
