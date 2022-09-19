@@ -1,0 +1,196 @@
+---
+title: "Proyecto 2"
+author: "Ian Carrillo Oviedo y Diego Gutiérrez González 5AM1"
+output: html_notebook
+---
+
+ 
+
+```{r}
+
+#Importar dataset
+#package.install("readr")
+library(readr)
+path = file.choose(new = FALSE)
+iris <- read_csv(path, col_names = c("Sepal.Length","Sepal.Width",
+                                     "Petal.Length","Petal.Width","Species"),
+                 col_types = list("Species" = col_factor() ) )
+#convertir la clase a escala nominal
+summary(iris)
+
+```
+
+```{r}
+sepalo = iris[,c(1:2,5)]
+petalo = iris[,c(3:4,5)]
+
+#multiplicamos longitud por ancho del sépalo para obtener su área
+
+length_sepalo = sepalo[["Sepal.Length"]]
+width_sepalo = sepalo[["Sepal.Width"]]
+area_sepalo = c(NULL)
+
+for (i in length(length_sepalo)) {
+  area_sepalo = length_sepalo*width_sepalo
+}
+
+sepalo = data.frame(Sepal.Length = sepalo$Sepal.Length,
+                    Sepal.Width = sepalo$Sepal.Width,
+                    Area = area_sepalo,
+                    Species = sepalo$Species)
+
+#Calcular área del pétalo
+length_petalo = petalo[["Petal.Length"]]
+width_petalo = petalo[["Petal.Width"]]
+area_petalo = c(NULL)
+
+for (i in length(length_petalo)) {
+  area_petalo = length_petalo * width_petalo
+}
+petalo = data.frame(Petalo.Length = petalo$Petal.Length,
+                    Petalo.Width = petalo$Petal.Width,
+                    Area = area_petalo,
+                    Species = petalo$Species)
+
+#Separar el sépalo y pétalo según la especie
+
+setosa_sepalo = sepalo[sepalo$Species == "Iris-setosa",]
+versicolor_sepalo = sepalo[sepalo$Species == "Iris-versicolor",]
+virginica_sepalo = sepalo[sepalo$Species == "Iris-virginica",]
+
+setosa_petalo = petalo[petalo$Species == "Iris-setosa",]
+versicolor_petalo = petalo[petalo$Species == "Iris-versicolor",]
+virginica_petalo = petalo[petalo$Species == "Iris-virginica",]
+
+
+```
+
+### **Norma Euclídea**
+
+$$
+  || x || = (\sum_{j=1}^{n}x_{j}^{2})^{\frac{1}{2}}
+$$
+```{r}
+norma = function(A){
+  x = 0
+  for(i in (1:length(A)) ){
+    x = x + (A[i,3])**2
+  }
+  
+  return(x**(1/2))
+}
+
+#Sépalo
+cat("---------------SÉPALO---------------\n")
+cat("Norma del área de la especie setosa: ")
+cat(round(norma(setosa_sepalo), digits = 2),"\n")
+cat("Norma del área de la especie versicolor: ")
+cat(round(norma(versicolor_sepalo), digits = 2),"\n")
+cat("Norma del área de la especie virginica: ")
+cat(round(norma(virginica_sepalo), digits = 2),"\n")
+#Pétalo
+cat("\n---------------PÉTALO---------------\n")
+cat("Norma del área de la especie setosa: ")
+cat(round(norma(setosa_petalo), digits = 2),"\n")
+cat("Norma del área de la especie versicolor: ")
+cat(round(norma(versicolor_petalo), digits = 2),"\n")
+cat("Norma del área de la especie virginica: ")
+cat(round(norma(virginica_petalo), digits = 2),"\n")
+```
+### **Umbral de disimilitud entre clases**
+
+El rango de la norma con respecto al área del sépalo en las distintas especies, es de 31.05 a 39.23; mientras que el rango de la norma del vector área del pétalo es de 0.56 a 23.96
+
+### **Medida de distancia**
+
+$$
+d(x,y)=||x-y||
+$$
+### Medida de disimiltud entre especies para el sépalo
+```{r}
+distancia = function(A,B){
+  x = 0
+  for(i in (1:length(A))){
+    x = x + (A[i,3] - B[i,3])**2
+  }
+  return(x**(1/2))
+}
+
+cat("Disimilitud setosa - versicolor = ")
+cat(distancia(setosa_sepalo,versicolor_sepalo),"\n")
+
+cat("Disimilitud versicolor - setosa = ")
+cat(distancia(versicolor_sepalo, setosa_sepalo),"\n")
+
+cat("Disimilitud setosa - virginica = ")
+cat(distancia(setosa_sepalo,virginica_sepalo),"\n")
+
+cat("Disimilitud virginica - setosa = ")
+cat(distancia(virginica_sepalo,setosa_sepalo),"\n")
+
+cat("Disimilitud versicolor - virginica = ")
+cat(distancia(versicolor_sepalo,virginica_sepalo),"\n")
+
+cat("Disimilitud virginica - versicolor = ")
+cat(distancia(virginica_sepalo,versicolor_sepalo),"\n")
+```
+
+### Medida de disimiltud entre especies para el pétalo 
+
+```{r}
+
+cat("Disimilitud setosa - versicolor = ")
+cat(distancia(setosa_petalo,versicolor_petalo),"\n")
+
+cat("Disimilitud versicolor - setosa = ")
+cat(distancia(versicolor_petalo, setosa_petalo),"\n")
+
+cat("Disimilitud setosa - virginica = ")
+cat(distancia(setosa_petalo,virginica_petalo),"\n")
+
+cat("Disimilitud virginica - setosa = ")
+cat(distancia(virginica_petalo,setosa_petalo),"\n")
+
+cat("Disimilitud versicolor - virginica = ")
+cat(distancia(versicolor_petalo,virginica_petalo),"\n")
+
+cat("Disimilitud virginica - versicolor = ")
+cat(distancia(virginica_petalo,versicolor_petalo),"\n")
+
+```
+### Producto interno 
+
+$$
+A \cdot B = \sum_{i=1}^{n} \sum_{j=1}^{n}a_{ij}b_{ij}
+$$
+
+```{r}
+producto_interno = function(A,B){
+  x = 0
+  for(i in (1:length(A))){
+    for(j in (1:4)){
+      x = x + (A[i,j] * B[i,j])
+    }
+  }
+  return(as.numeric(x))
+}
+
+cat("Producto interno Setosa - Versicolor: ")
+cat(producto_interno(iris[iris$Species=="Iris-setosa",], iris[iris$Species=="Iris-versicolor",]),"\n")
+
+cat("Producto interno Versicolor - Setosa: ")
+cat(producto_interno(iris[iris$Species=="Iris-setosa",], iris[iris$Species=="Iris-setosa",]),"\n")
+
+cat("Producto interno Setosa - Virginica: ")
+cat(producto_interno(iris[iris$Species=="Iris-setosa",], iris[iris$Species=="Iris-virginica",]),"\n")
+
+cat("Producto interno Virginica - Setosa: ")
+cat(producto_interno(iris[iris$Species=="Iris-virginica",], iris[iris$Species=="Iris-setosa",]),"\n")
+
+cat("Producto interno Versicolor - Virginica: ")
+cat(producto_interno(iris[iris$Species=="Iris-versicolor",], iris[iris$Species=="Iris-virginica",]),"\n")
+
+cat("Producto interno Virginica - Versicolor: ")
+cat(producto_interno(iris[iris$Species=="Iris-virginica",], iris[iris$Species=="Iris-versicolor",]),"\n")
+```
+
